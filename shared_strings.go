@@ -8,7 +8,19 @@ import (
 	"strconv"
 )
 
-func (p *Parser) loadSharedStrings(f *zip.File) error {
+type sharedStringParser struct {
+	*Parser
+	expectingString bool
+	currentString   []byte
+}
+
+func newSharedStringParser(p *Parser) *sharedStringParser {
+	return &sharedStringParser{
+		Parser: p,
+	}
+}
+
+func (ssp *sharedStringParser) loadSharedStrings(f *zip.File) error {
 	reader, err := f.Open()
 	if err != nil {
 		return fmt.Errorf("opening shared strings file: %w", err)
@@ -19,13 +31,10 @@ func (p *Parser) loadSharedStrings(f *zip.File) error {
 
 	decoder := xml.NewDecoder(reader)
 
-	return p.loopSharedStrings(decoder)
+	return ssp.loopSharedStrings(decoder)
 }
 
-func (p *Parser) loopSharedStrings(decoder *xml.Decoder) error {
-	expectingString := false
-	var currentString []byte
-
+func (ssp *sharedStringParser) loopSharedStrings(decoder *xml.Decoder) error {
 	for {
 		// Read tokens from the XML document in a stream.
 		t, err := decoder.Token()
@@ -37,30 +46,41 @@ func (p *Parser) loopSharedStrings(decoder *xml.Decoder) error {
 			return err
 		}
 
-		// Inspect the type of the token just read.
-		switch se := t.(type) {
-		case xml.StartElement:
-			if se.Name.Local == "sst" {
-				for _, attr := range se.Attr {
-					if attr.Name.Local == "uniqueCount" {
-						size, _ := strconv.Atoi(attr.Value)
-						p.sharedStrings = make([][]byte, 0, size)
-					}
-				}
+		if err := ssp.handleToken(t); err != nil {
+			return err
+		}
+	}
 
-			} else if se.Name.Local == "t" {
-				expectingString = true
-				currentString = []byte{}
+	return nil
+}
+
+func (ssp *sharedStringParser) handleToken(token xml.Token) error {
+	switch se := token.(type) {
+	case xml.StartElement:
+		switch se.Name.Local {
+		case "t":
+			ssp.expectingString = true
+			ssp.currentString = []byte{}
+		case "sst":
+			for _, attr := range se.Attr {
+				if attr.Name.Local == "uniqueCount" {
+					size, _ := strconv.Atoi(attr.Value)
+					ssp.sharedStrings = make([][]byte, 0, size)
+					break
+				}
 			}
-		case xml.EndElement:
-			if se.Name.Local == "t" {
-				p.sharedStrings = append(p.sharedStrings, currentString)
-			}
-		case xml.CharData:
-			if expectingString {
-				currentString = se
-				expectingString = false
-			}
+		}
+	case xml.EndElement:
+		if se.Name.Local == "t" {
+			ssp.sharedStrings = append(ssp.sharedStrings, ssp.currentString)
+		}
+	case xml.CharData:
+		if ssp.expectingString {
+			buf := make([]byte, len(se))
+			copy(buf, se)
+
+			ssp.currentString = buf
+			ssp.expectingString = false
 		}
 	}
 

@@ -9,10 +9,18 @@ import (
 func TestParse(t *testing.T) {
 	c := require.New(t)
 
+	rows := [][][]byte{}
+
 	parser := &Parser{}
 	err := parser.Parse("test-data/test.xlsx", func(sheet int, row [][]byte) {
-		//fmt.Printf("%d %#v\n", sheet, row)
+		rows = append(rows, row)
 	})
+
+	c.Equal(13, len(parser.sharedStrings))
+	c.Equal(23, len(rows))
+
+	c.Equal("title1", string(rows[1][0]))
+	c.Equal("4", string(rows[3][3]))
 	c.NoError(err)
 }
 

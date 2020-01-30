@@ -41,10 +41,12 @@ func (p *Parser) ParseReader(reader io.ReaderAt, size int64, cb func(sheet int, 
 		files[file.Name] = file
 	}
 
-	err = p.loadSharedStrings(files["xl/sharedStrings.xml"])
+	ssp := newSharedStringParser(p)
+	err = ssp.loadSharedStrings(files["xl/sharedStrings.xml"])
 	if err != nil {
 		return err
 	}
 
-	return p.loadSheet(files["xl/worksheets/sheet1.xml"], 1, cb) // TODO: extend to multi sheet
+	sp := newSheetParser(1, p)
+	return sp.loadSheet(files["xl/worksheets/sheet1.xml"], cb) // TODO: extend to support multi sheet docs
 }

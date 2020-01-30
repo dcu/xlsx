@@ -9,7 +9,24 @@ import (
 	"strings"
 )
 
-func (p *Parser) loadSheet(f *zip.File, sheet int, cb func(sheet int, row [][]byte)) error {
+type sheetParser struct {
+	parser          *Parser
+	sheet           int
+	expectingString bool
+	stringLocation  string
+	currentCell     string
+	totalColumns    int
+	currentRow      [][]byte
+}
+
+func newSheetParser(sheet int, parser *Parser) *sheetParser {
+	return &sheetParser{
+		parser: parser,
+		sheet:  sheet,
+	}
+}
+
+func (sp *sheetParser) loadSheet(f *zip.File, cb func(sheet int, row [][]byte)) error {
 	reader, err := f.Open()
 	if err != nil {
 		return fmt.Errorf("opening shared strings file: %w", err)
@@ -19,18 +36,10 @@ func (p *Parser) loadSheet(f *zip.File, sheet int, cb func(sheet int, row [][]by
 	}()
 
 	decoder := xml.NewDecoder(reader)
-	return p.loopRows(decoder, sheet, cb)
+	return sp.loopRows(decoder, cb)
 }
 
-func (p *Parser) loopRows(decoder *xml.Decoder, sheet int, cb func(sheet int, row [][]byte)) error {
-	expectingString := false
-	stringLocation := "inline"
-	currentCell := ""
-
-	var row [][]byte
-	totalColumns := 0
-
-	count := 0
+func (sp *sheetParser) loopRows(decoder *xml.Decoder, cb func(sheet int, row [][]byte)) error {
 	for {
 		// Read tokens from the XML document in a stream.
 		t, err := decoder.Token()
@@ -42,50 +51,78 @@ func (p *Parser) loopRows(decoder *xml.Decoder, sheet int, cb func(sheet int, ro
 			return err
 		}
 
-		// Inspect the type of the token just read.
-		switch se := t.(type) {
-		case xml.StartElement:
-			if se.Name.Local == "v" {
-				expectingString = true
-			} else if se.Name.Local == "c" {
-				stringLocation = "inline"
-				for _, attr := range se.Attr {
-					if attr.Name.Local == "t" && attr.Value == "s" {
-						stringLocation = "shared"
-					} else if attr.Name.Local == "r" {
-						currentCell = attr.Value
-					}
-				}
-			} else if se.Name.Local == "row" {
-				row = make([][]byte, totalColumns)
-			} else if se.Name.Local == "dimension" {
-				for _, attr := range se.Attr {
-					if attr.Name.Local == "ref" {
-						parts := strings.SplitN(attr.Value, ":", 2)
-						totalColumns = columnToIndex(parts[1]) + 1
-						break
-					}
-				}
-			}
-		case xml.CharData:
-			if expectingString {
-				//println(stringLocation, currentCell, string(se))
-				if stringLocation == "shared" {
-					pos, _ := strconv.Atoi(string(se))
-					row[columnToIndex(currentCell)] = p.sharedStrings[pos]
-				} else {
-					row[columnToIndex(currentCell)] = se
-				}
-			}
-		case xml.EndElement:
-			if se.Name.Local == "row" {
-				cb(sheet, row)
-				count++
-			}
+		if err := sp.handleToken(t, cb); err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (sp *sheetParser) handleToken(t xml.Token, cb func(sheet int, row [][]byte)) error {
+	// Inspect the type of the token just read.
+	switch se := t.(type) {
+	case xml.StartElement:
+		sp.handleStartElement(&se)
+	case xml.CharData:
+		sp.handleCharData(se)
+	case xml.EndElement:
+		sp.handleEndElement(&se, cb)
+	}
+
+	return nil
+}
+
+func (sp *sheetParser) handleEndElement(se *xml.EndElement, cb func(sheet int, row [][]byte)) {
+	if se.Name.Local == "row" {
+		cb(sp.sheet, sp.currentRow)
+	}
+}
+
+func (sp *sheetParser) handleCharData(se xml.CharData) {
+	if !sp.expectingString {
+		return
+	}
+
+	if sp.stringLocation == "shared" {
+		pos, _ := strconv.Atoi(string(se))
+		sp.currentRow[columnToIndex(sp.currentCell)] = []byte(sp.parser.sharedStrings[pos])
+	} else {
+		buf := make([]byte, len(se))
+		copy(buf, se)
+
+		sp.currentRow[columnToIndex(sp.currentCell)] = buf
+	}
+}
+
+func (sp *sheetParser) handleStartElement(se *xml.StartElement) {
+	switch se.Name.Local {
+	case "v":
+		sp.expectingString = true
+	case "c":
+		sp.stringLocation = "inline"
+		sp.parseCellAttributes(se)
+	case "row":
+		sp.currentRow = make([][]byte, sp.totalColumns)
+	case "dimension":
+		for _, attr := range se.Attr {
+			if attr.Name.Local == "ref" {
+				parts := strings.SplitN(attr.Value, ":", 2)
+				sp.totalColumns = columnToIndex(parts[1]) + 1
+				break
+			}
+		}
+	}
+}
+
+func (sp *sheetParser) parseCellAttributes(cell *xml.StartElement) {
+	for _, attr := range cell.Attr {
+		if attr.Name.Local == "t" && attr.Value == "s" {
+			sp.stringLocation = "shared"
+		} else if attr.Name.Local == "r" {
+			sp.currentCell = attr.Value
+		}
+	}
 }
 
 func columnToIndex(columnName string) int {
