@@ -11,7 +11,7 @@ func TestParse(t *testing.T) {
 
 	rows := [][][]byte{}
 
-	parser := &Parser{}
+	parser := NewParser()
 	err := parser.Parse("test-data/test.xlsx", func(sheet int, row [][]byte) {
 		rows = append(rows, row)
 	})
@@ -26,7 +26,7 @@ func TestParse(t *testing.T) {
 
 func BenchmarkParse(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		parser := &Parser{}
+		parser := NewParser()
 		err := parser.Parse("test-data/test.xlsx", func(sheet int, row [][]byte) {})
 		if err != nil {
 			b.Fatal(err)

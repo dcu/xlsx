@@ -1,4 +1,4 @@
-module github.com/dcu/xslt2csv
+module github.com/dcu/xslx
 
 go 1.13
 

@@ -11,6 +11,11 @@ type Parser struct {
 	sharedStrings [][]byte
 }
 
+// NewParser creates a new parser
+func NewParser() *Parser {
+	return &Parser{}
+}
+
 // Parse parses the given file
 func (p *Parser) Parse(filePath string, cb func(sheet int, row [][]byte)) error {
 	file, err := os.Open(filePath)
