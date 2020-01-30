@@ -26,3 +26,12 @@ func BenchmarkParse(b *testing.B) {
 
 	}
 }
+
+func Benchmark_columnToIndex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		index := columnToIndex("AAAAAAAA12345")
+		if index != 8353082582 {
+			b.Fatal("wrong index", index)
+		}
+	}
+}

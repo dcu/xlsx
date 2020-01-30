@@ -5,13 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
-)
-
-var (
-	numbersRx = regexp.MustCompile(`\d`)
 )
 
 func (p *Parser) loadSheet(f *zip.File, sheet int, cb func(sheet int, row [][]byte)) error {
@@ -94,9 +89,13 @@ func (p *Parser) loopRows(decoder *xml.Decoder, sheet int, cb func(sheet int, ro
 }
 
 func columnToIndex(columnName string) int {
-	columnName = numbersRx.ReplaceAllString(columnName, "")
 	sum := 0
 	for i := 0; i < len(columnName); i++ {
+		ch := columnName[i]
+		if ch < 'A' || ch > 'Z' {
+			break
+		}
+
 		sum *= 26
 		sum += int(columnName[i] - 'A' + 1)
 	}
