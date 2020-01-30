@@ -24,7 +24,7 @@ func (p *Parser) loadSharedStrings(f *zip.File) error {
 
 func (p *Parser) loopSharedStrings(decoder *xml.Decoder) error {
 	expectingString := false
-	currentString := ""
+	var currentString []byte
 
 	for {
 		// Read tokens from the XML document in a stream.
@@ -44,13 +44,13 @@ func (p *Parser) loopSharedStrings(decoder *xml.Decoder) error {
 				for _, attr := range se.Attr {
 					if attr.Name.Local == "uniqueCount" {
 						size, _ := strconv.Atoi(attr.Value)
-						p.sharedStrings = make([]string, 0, size)
+						p.sharedStrings = make([][]byte, 0, size)
 					}
 				}
 
 			} else if se.Name.Local == "t" {
 				expectingString = true
-				currentString = ""
+				currentString = []byte{}
 			}
 		case xml.EndElement:
 			if se.Name.Local == "t" {
@@ -58,7 +58,7 @@ func (p *Parser) loopSharedStrings(decoder *xml.Decoder) error {
 			}
 		case xml.CharData:
 			if expectingString {
-				currentString = string(se)
+				currentString = se
 				expectingString = false
 			}
 		}

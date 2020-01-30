@@ -8,11 +8,11 @@ import (
 
 // Parser is a parse in charge of handling the XLST file.
 type Parser struct {
-	sharedStrings []string
+	sharedStrings [][]byte
 }
 
 // Parse parses the given file
-func (p *Parser) Parse(filePath string, cb func(sheet int, row []string)) error {
+func (p *Parser) Parse(filePath string, cb func(sheet int, row [][]byte)) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func (p *Parser) Parse(filePath string, cb func(sheet int, row []string)) error 
 }
 
 // ParseReader parses the data from the given reader
-func (p *Parser) ParseReader(reader io.ReaderAt, size int64, cb func(sheet int, row []string)) error {
+func (p *Parser) ParseReader(reader io.ReaderAt, size int64, cb func(sheet int, row [][]byte)) error {
 	zipReader, err := zip.NewReader(reader, size)
 	if err != nil {
 		return err

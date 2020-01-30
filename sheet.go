@@ -14,7 +14,7 @@ var (
 	numbersRx = regexp.MustCompile(`\d`)
 )
 
-func (p *Parser) loadSheet(f *zip.File, sheet int, cb func(sheet int, row []string)) error {
+func (p *Parser) loadSheet(f *zip.File, sheet int, cb func(sheet int, row [][]byte)) error {
 	reader, err := f.Open()
 	if err != nil {
 		return fmt.Errorf("opening shared strings file: %w", err)
@@ -27,12 +27,12 @@ func (p *Parser) loadSheet(f *zip.File, sheet int, cb func(sheet int, row []stri
 	return p.loopRows(decoder, sheet, cb)
 }
 
-func (p *Parser) loopRows(decoder *xml.Decoder, sheet int, cb func(sheet int, row []string)) error {
+func (p *Parser) loopRows(decoder *xml.Decoder, sheet int, cb func(sheet int, row [][]byte)) error {
 	expectingString := false
 	stringLocation := "inline"
 	currentCell := ""
 
-	var row []string
+	var row [][]byte
 	totalColumns := 0
 
 	count := 0
@@ -62,7 +62,7 @@ func (p *Parser) loopRows(decoder *xml.Decoder, sheet int, cb func(sheet int, ro
 					}
 				}
 			} else if se.Name.Local == "row" {
-				row = make([]string, totalColumns)
+				row = make([][]byte, totalColumns)
 			} else if se.Name.Local == "dimension" {
 				for _, attr := range se.Attr {
 					if attr.Name.Local == "ref" {
@@ -79,7 +79,7 @@ func (p *Parser) loopRows(decoder *xml.Decoder, sheet int, cb func(sheet int, ro
 					pos, _ := strconv.Atoi(string(se))
 					row[columnToIndex(currentCell)] = p.sharedStrings[pos]
 				} else {
-					row[columnToIndex(currentCell)] = string(se)
+					row[columnToIndex(currentCell)] = se
 				}
 			}
 		case xml.EndElement:
