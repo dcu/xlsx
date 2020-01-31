@@ -1,8 +1,9 @@
-package xslx
+package xlsx
 
 import (
 	"archive/zip"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -38,7 +39,7 @@ func (ssp *sharedStringParser) loopSharedStrings(decoder *xml.Decoder) error {
 	for {
 		// Read tokens from the XML document in a stream.
 		t, err := decoder.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 

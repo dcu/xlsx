@@ -1,4 +1,4 @@
-module github.com/dcu/xslx
+module github.com/dcu/xlsx
 
 go 1.13
 

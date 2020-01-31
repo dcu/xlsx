@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dcu/xslx"
+	"github.com/dcu/xlsx"
 )
 
 var exitFunc = os.Exit
@@ -16,14 +16,14 @@ func main() {
 
 func run() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: xslx2csv <file.xslx>")
+		fmt.Println("Usage: xlsx2csv <file.xlsx>")
 		exitFunc(0)
 		return
 	}
 
 	csvWriter := csv.NewWriter(os.Stdout)
 
-	parser := xslx.NewParser()
+	parser := xlsx.NewParser()
 	err := parser.Parse(os.Args[1], func(sheet int, row [][]byte) {
 		err := csvWriter.Write(rowToStringArray(row))
 		if err != nil {

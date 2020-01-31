@@ -1,8 +1,9 @@
-package xslx
+package xlsx
 
 import (
 	"archive/zip"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -43,7 +44,7 @@ func (sp *sheetParser) loopRows(decoder *xml.Decoder, cb func(sheet int, row [][
 	for {
 		// Read tokens from the XML document in a stream.
 		t, err := decoder.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 
