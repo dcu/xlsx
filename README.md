@@ -1,4 +1,4 @@
-# xslx
+# xlsx
 
 [![Build Status](https://travis-ci.com/dcu/xlsx.svg?branch=master)](https://travis-ci.org/dcu/xlsx)
 
@@ -27,13 +27,13 @@ NewParser creates a new parser
 #### func (*Parser) Parse
 
 ```go
-func (p *Parser) Parse(filePath string, cb func(sheet int, row [][]byte)) error
+func (p *Parser) Parse(filePath string, cb func(sheet int, row [][]byte) error) error
 ```
 Parse parses the given file
 
 #### func (*Parser) ParseReader
 
 ```go
-func (p *Parser) ParseReader(reader io.ReaderAt, size int64, cb func(sheet int, row [][]byte)) error
+func (p *Parser) ParseReader(reader io.ReaderAt, size int64, cb func(sheet int, row [][]byte) error) error
 ```
 ParseReader parses the data from the given reader

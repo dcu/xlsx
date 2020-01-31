@@ -22,13 +22,11 @@ func run() {
 	}
 
 	csvWriter := csv.NewWriter(os.Stdout)
+	defer csvWriter.Flush()
 
 	parser := xlsx.NewParser()
-	err := parser.Parse(os.Args[1], func(sheet int, row [][]byte) {
-		err := csvWriter.Write(rowToStringArray(row))
-		if err != nil {
-			fmt.Println("Failed to write CSV file:", err.Error())
-		}
+	err := parser.Parse(os.Args[1], func(sheet int, row [][]byte) error {
+		return csvWriter.Write(rowToStringArray(row))
 	})
 
 	if err != nil {

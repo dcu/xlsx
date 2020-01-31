@@ -6,6 +6,9 @@ import (
 	"os"
 )
 
+// Callback is a function that gets the sheet number and the parsed row
+type Callback func(sheet int, row [][]byte) error
+
 // Parser is a parse in charge of handling the XLST file.
 type Parser struct {
 	sharedStrings [][]byte
@@ -17,7 +20,7 @@ func NewParser() *Parser {
 }
 
 // Parse parses the given file
-func (p *Parser) Parse(filePath string, cb func(sheet int, row [][]byte)) error {
+func (p *Parser) Parse(filePath string, cb Callback) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -35,7 +38,7 @@ func (p *Parser) Parse(filePath string, cb func(sheet int, row [][]byte)) error 
 }
 
 // ParseReader parses the data from the given reader
-func (p *Parser) ParseReader(reader io.ReaderAt, size int64, cb func(sheet int, row [][]byte)) error {
+func (p *Parser) ParseReader(reader io.ReaderAt, size int64, cb Callback) error {
 	zipReader, err := zip.NewReader(reader, size)
 	if err != nil {
 		return err

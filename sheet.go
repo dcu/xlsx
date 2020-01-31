@@ -27,7 +27,7 @@ func newSheetParser(sheet int, parser *Parser) *sheetParser {
 	}
 }
 
-func (sp *sheetParser) loadSheet(f *zip.File, cb func(sheet int, row [][]byte)) error {
+func (sp *sheetParser) loadSheet(f *zip.File, cb Callback) error {
 	reader, err := f.Open()
 	if err != nil {
 		return fmt.Errorf("opening shared strings file: %w", err)
@@ -40,7 +40,7 @@ func (sp *sheetParser) loadSheet(f *zip.File, cb func(sheet int, row [][]byte)) 
 	return sp.loopRows(decoder, cb)
 }
 
-func (sp *sheetParser) loopRows(decoder *xml.Decoder, cb func(sheet int, row [][]byte)) error {
+func (sp *sheetParser) loopRows(decoder *xml.Decoder, cb Callback) error {
 	for {
 		// Read tokens from the XML document in a stream.
 		t, err := decoder.Token()
@@ -60,7 +60,7 @@ func (sp *sheetParser) loopRows(decoder *xml.Decoder, cb func(sheet int, row [][
 	return nil
 }
 
-func (sp *sheetParser) handleToken(t xml.Token, cb func(sheet int, row [][]byte)) error {
+func (sp *sheetParser) handleToken(t xml.Token, cb Callback) error {
 	// Inspect the type of the token just read.
 	switch se := t.(type) {
 	case xml.StartElement:
@@ -68,16 +68,20 @@ func (sp *sheetParser) handleToken(t xml.Token, cb func(sheet int, row [][]byte)
 	case xml.CharData:
 		sp.handleCharData(se)
 	case xml.EndElement:
-		sp.handleEndElement(&se, cb)
+		if err := sp.handleEndElement(&se, cb); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (sp *sheetParser) handleEndElement(se *xml.EndElement, cb func(sheet int, row [][]byte)) {
-	if se.Name.Local == "row" {
-		cb(sp.sheet, sp.currentRow)
+func (sp *sheetParser) handleEndElement(se *xml.EndElement, cb Callback) error {
+	if se.Name.Local != "row" {
+		return nil
 	}
+
+	return cb(sp.sheet, sp.currentRow)
 }
 
 func (sp *sheetParser) handleCharData(se xml.CharData) {
