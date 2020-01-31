@@ -14,6 +14,7 @@ script:
 
 before_install:
   - go get golang.org/x/tools/cmd/cover
+  - go get -u -v github.com/polyfloyd/go-errorlint
   - go get -u -v github.com/uudashr/gocognit/cmd/gocognit
   - go get -u -v honnef.co/go/tools/cmd/staticcheck
   - go get -u -v golang.org/x/lint/golint

@@ -1,7 +1,10 @@
 # xslx
---
-    import "github.com/dcu/xslx"
 
+[![Build Status](https://travis-ci.com/dcu/xlsx.svg?branch=master)](https://travis-ci.org/dcu/xlsx)
+
+```go
+    import "github.com/dcu/xlsx"
+```
 
 ## Usage
 
